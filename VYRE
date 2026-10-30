@@ -1,0 +1,569 @@
+
+-- VYRE HUB v2.0
+-- Interfaz de pruebas para tu propio juego de Roblox Studio
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "VYRE_HUB"
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 100
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local Theme = {
+    Background = Color3.fromRGB(255,255,255),
+    Sidebar = Color3.fromRGB(255,241,248),
+    Panel = Color3.fromRGB(255,255,255),
+    Pink = Color3.fromRGB(240,160,200),
+    Magenta = Color3.fromRGB(205,0,155),
+    Text = Color3.fromRGB(50,35,48),
+    Muted = Color3.fromRGB(145,120,140),
+    ESP = Color3.fromRGB(255,70,180),
+    FOV = Color3.fromRGB(205,0,155)
+}
+
+local function create(class, props, parent)
+    local obj = Instance.new(class)
+    for k,v in pairs(props) do
+        obj[k] = v
+    end
+    obj.Parent = parent
+    return obj
+end
+
+local function round(obj, radius)
+    create("UICorner", {
+        CornerRadius = UDim.new(0, radius or 8)
+    }, obj)
+end
+
+local function outline(obj, color, thickness)
+    return create("UIStroke", {
+        Color = color or Theme.Pink,
+        Thickness = thickness or 1
+    }, obj)
+end
+
+local function label(parent, text, size, color, font)
+    return create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = size,
+        Text = text,
+        TextColor3 = color or Theme.Text,
+        TextSize = 13,
+        Font = font or Enum.Font.Gotham,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, parent)
+end
+
+-- Ventana principal
+
+local main = create("Frame", {
+    Name = "Main",
+    Size = UDim2.fromOffset(700,455),
+    Position = UDim2.new(0.5,-350,0.5,-227),
+    BackgroundColor3 = Theme.Background,
+    BorderSizePixel = 0
+}, gui)
+
+round(main,13)
+outline(main,Theme.Pink,2)
+
+-- Barra superior
+
+local top = create("Frame", {
+    Size = UDim2.new(1,0,0,48),
+    BackgroundColor3 = Color3.fromRGB(255,248,252),
+    BorderSizePixel = 0
+},main)
+round(top,12)
+
+label(top,"VYRE",UDim2.fromOffset(90,35),Theme.Magenta,Enum.Font.GothamBold).Position = UDim2.fromOffset(17,6)
+
+label(top,"H U B  •  v2.0",UDim2.fromOffset(150,30),Theme.Muted).Position = UDim2.fromOffset(85,9)
+
+local close = create("TextButton",{
+    Size=UDim2.fromOffset(32,30),
+    Position=UDim2.new(1,-42,0,9),
+    Text="×",
+    TextSize=23,
+    Font=Enum.Font.GothamBold,
+    TextColor3=Theme.Magenta,
+    BackgroundColor3=Color3.fromRGB(255,225,240),
+    BorderSizePixel=0
+},top)
+round(close,7)
+
+local minimize = create("TextButton",{
+    Size=UDim2.fromOffset(32,30),
+    Position=UDim2.new(1,-80,0,9),
+    Text="—",
+    TextSize=19,
+    Font=Enum.Font.GothamBold,
+    TextColor3=Theme.Magenta,
+    BackgroundColor3=Color3.fromRGB(255,225,240),
+    BorderSizePixel=0
+},top)
+round(minimize,7)
+
+-- Barra lateral
+
+local sidebar = create("Frame",{
+    Position=UDim2.fromOffset(12,60),
+    Size=UDim2.new(0,145,1,-72),
+    BackgroundColor3=Theme.Sidebar,
+    BorderSizePixel=0
+},main)
+round(sidebar,10)
+
+label(sidebar,"NAVIGATION",UDim2.new(1,-20,0,25),Theme.Muted,Enum.Font.GothamBold).Position=UDim2.fromOffset(12,10)
+
+local tabs = {"MAIN","AIM","VISUAL","DELETER","TP"}
+local selectedTab = "MAIN"
+local tabButtons = {}
+
+local content = create("ScrollingFrame",{
+    Position=UDim2.fromOffset(170,62),
+    Size=UDim2.new(1,-182,1,-75),
+    BackgroundTransparency=1,
+    BorderSizePixel=0,
+    ScrollBarThickness=4,
+    ScrollBarImageColor3=Theme.Magenta,
+    CanvasSize=UDim2.new(0,0,0,0),
+    AutomaticCanvasSize=Enum.AutomaticSize.Y
+},main)
+
+local layout = create("UIListLayout",{
+    Padding=UDim.new(0,9),
+    SortOrder=Enum.SortOrder.LayoutOrder
+},content)
+
+create("UIPadding",{
+    PaddingTop=UDim.new(0,5),
+    PaddingBottom=UDim.new(0,10),
+    PaddingLeft=UDim.new(0,5),
+    PaddingRight=UDim.new(0,8)
+},content)
+
+-- Datos de los controles
+
+local settings = {
+    ["Aimbot PC"] = false,
+    ["Aimrizogs"] = false,
+    ["Aimbot Target"] = false,
+    ["Hold Mode"] = true,
+    ["Use Prediction"] = false,
+    ["Team Check"] = false,
+    ["ESP Enabled"] = false,
+    ["Show Names"] = true,
+    ["Show Distance"] = false,
+    ["Delete Preview"] = false
+}
+
+local function clearContent()
+    for _,obj in ipairs(content:GetChildren()) do
+        if obj:IsA("GuiObject") and obj ~= layout then
+            obj:Destroy()
+        end
+    end
+end
+
+local function section(title)
+    local frame = create("Frame",{
+        Size=UDim2.new(1,0,0,32),
+        BackgroundColor3=Color3.fromRGB(255,239,248),
+        BorderSizePixel=0
+    },content)
+    round(frame,7)
+    label(frame,title,UDim2.new(1,-15,1,0),Theme.Magenta,Enum.Font.GothamBold).Position=UDim2.fromOffset(10,0)
+end
+
+local function toggle(name)
+    local row = create("Frame",{
+        Size=UDim2.new(1,0,0,39),
+        BackgroundColor3=Theme.Panel,
+        BorderSizePixel=0
+    },content)
+    round(row,7)
+    outline(row,Color3.fromRGB(245,215,232),1)
+
+    label(row,name,UDim2.new(1,-85,1,0),Theme.Text).Position=UDim2.fromOffset(12,0)
+
+    local button = create("TextButton",{
+        Size=UDim2.fromOffset(48,23),
+        Position=UDim2.new(1,-60,0.5,-11),
+        Text="",
+        BackgroundColor3=settings[name] and Theme.Magenta or Color3.fromRGB(220,210,218),
+        BorderSizePixel=0
+    },row)
+    round(button,15)
+
+    local dot = create("Frame",{
+        Size=UDim2.fromOffset(17,17),
+        Position=settings[name] and UDim2.new(1,-20,0.5,-8) or UDim2.fromOffset(3,3),
+        BackgroundColor3=Color3.new(1,1,1),
+        BorderSizePixel=0
+    },button)
+    round(dot,20)
+
+    button.MouseButton1Click:Connect(function()
+        settings[name] = not settings[name]
+        button.BackgroundColor3 = settings[name] and Theme.Magenta or Color3.fromRGB(220,210,218)
+        dot.Position = settings[name] and UDim2.new(1,-20,0.5,-8) or UDim2.fromOffset(3,3)
+    end)
+end
+
+local function slider(name,min,max,default)
+    local value = default
+
+    local row = create("Frame",{
+        Size=UDim2.new(1,0,0,60),
+        BackgroundColor3=Theme.Panel,
+        BorderSizePixel=0
+    },content)
+    round(row,7)
+    outline(row,Color3.fromRGB(245,215,232),1)
+
+    label(row,name,UDim2.new(0.7,0,0,24),Theme.Text).Position=UDim2.fromOffset(12,4)
+
+    local number = label(row,tostring(value),UDim2.fromOffset(55,22),Theme.Magenta,Enum.Font.GothamBold)
+    number.Position=UDim2.new(1,-65,0,4)
+    number.TextXAlignment=Enum.TextXAlignment.Right
+
+    local bar = create("Frame",{
+        Position=UDim2.fromOffset(12,36),
+        Size=UDim2.new(1,-24,0,7),
+        BackgroundColor3=Color3.fromRGB(240,220,232),
+        BorderSizePixel=0
+    },row)
+    round(bar,5)
+
+    local fill = create("Frame",{
+        Size=UDim2.new((value-min)/(max-min),0,1,0),
+        BackgroundColor3=Theme.Magenta,
+        BorderSizePixel=0
+    },bar)
+    round(fill,5)
+
+    local knob = create("Frame",{
+        Size=UDim2.fromOffset(13,13),
+        Position=UDim2.new((value-min)/(max-min),-6,0.5,-6),
+        BackgroundColor3=Theme.Magenta,
+        BorderSizePixel=0
+    },bar)
+    round(knob,20)
+
+    local dragging = false
+
+    local function update(x)
+        local percent = math.clamp((x-bar.AbsolutePosition.X)/bar.AbsoluteSize.X,0,1)
+        value = math.floor(min+(max-min)*percent)
+        fill.Size=UDim2.new(percent,0,1,0)
+        knob.Position=UDim2.new(percent,-6,0.5,-6)
+        number.Text=tostring(value)
+    end
+
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType==Enum.UserInputType.MouseButton1 then
+            dragging=true
+            update(input.Position.X)
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then
+            update(input.Position.X)
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType==Enum.UserInputType.MouseButton1 then
+            dragging=false
+        end
+    end)
+end
+
+local function dropdown(name,options)
+    local index=1
+    local row=create("Frame",{
+        Size=UDim2.new(1,0,0,43),
+        BackgroundColor3=Theme.Panel,
+        BorderSizePixel=0
+    },content)
+    round(row,7)
+    outline(row,Color3.fromRGB(245,215,232),1)
+
+    label(row,name,UDim2.new(0.5,0,1,0),Theme.Text).Position=UDim2.fromOffset(12,0)
+
+    local button=create("TextButton",{
+        Size=UDim2.fromOffset(135,28),
+        Position=UDim2.new(1,-145,0.5,-14),
+        Text=options[index].."  ▼",
+        TextSize=12,
+        Font=Enum.Font.Gotham,
+        TextColor3=Theme.Magenta,
+        BackgroundColor3=Color3.fromRGB(255,239,248),
+        BorderSizePixel=0
+    },row)
+    round(button,6)
+
+    button.MouseButton1Click:Connect(function()
+        index=index%#options+1
+        button.Text=options[index].."  ▼"
+    end)
+end
+
+-- Selector circular de colores
+
+local function colorPicker(name,callback)
+    local row=create("Frame",{
+        Size=UDim2.new(1,0,0,45),
+        BackgroundColor3=Theme.Panel,
+        BorderSizePixel=0
+    },content)
+    round(row,7)
+    outline(row,Color3.fromRGB(245,215,232),1)
+
+    label(row,name,UDim2.new(1,-75,1,0),Theme.Text).Position=UDim2.fromOffset(12,0)
+
+    local preview=create("TextButton",{
+        Size=UDim2.fromOffset(38,27),
+        Position=UDim2.new(1,-50,0.5,-13),
+        Text="",
+        BackgroundColor3=callback(),
+        BorderSizePixel=0
+    },row)
+    round(preview,6)
+    outline(preview,Theme.Pink,1)
+
+    local wheel=create("Frame",{
+        Size=UDim2.fromOffset(180,180),
+        Position=UDim2.new(1,-190,0,48),
+        BackgroundColor3=Color3.fromRGB(255,248,252),
+        BorderSizePixel=0,
+        Visible=false,
+        ZIndex=10
+    },content)
+    round(wheel,12)
+    outline(wheel,Theme.Pink,2)
+
+    local wheelTitle=label(wheel,"CHOOSE COLOR",UDim2.new(1,-20,0,22),Theme.Magenta,Enum.Font.GothamBold)
+    wheelTitle.Position=UDim2.fromOffset(10,5)
+    wheelTitle.ZIndex=11
+
+    local colors={
+        Color3.fromRGB(255,0,0),
+        Color3.fromRGB(255,100,0),
+        Color3.fromRGB(255,210,0),
+        Color3.fromRGB(100,255,0),
+        Color3.fromRGB(0,220,130),
+        Color3.fromRGB(0,220,255),
+        Color3.fromRGB(0,100,255),
+        Color3.fromRGB(100,0,255),
+        Color3.fromRGB(190,0,255),
+        Color3.fromRGB(255,0,200),
+        Color3.fromRGB(255,80,140),
+        Color3.fromRGB(255,255,255)
+    }
+
+    for i,color in ipairs(colors) do
+        local angle=(i-1)*(math.pi*2/#colors)-math.pi/2
+        local x=90+math.cos(angle)*53-13
+        local y=102+math.sin(angle)*53-13
+
+        local swatch=create("TextButton",{
+            Size=UDim2.fromOffset(26,26),
+            Position=UDim2.fromOffset(x,y),
+            BackgroundColor3=color,
+            Text="",
+            BorderSizePixel=0,
+            ZIndex=12
+        },wheel)
+        round(swatch,20)
+        outline(swatch,Color3.fromRGB(220,190,210),1)
+
+        swatch.MouseButton1Click:Connect(function()
+            preview.BackgroundColor3=color
+            callback(color)
+            wheel.Visible=false
+        end)
+    end
+
+    preview.MouseButton1Click:Connect(function()
+        wheel.Visible=not wheel.Visible
+    end)
+end
+
+-- Construcción de las pestañas
+
+local function buildTab(tab)
+    selectedTab=tab
+    clearContent()
+
+    if tab=="MAIN" then
+        section("MAIN OPTIONS")
+        toggle("Aimbot PC")
+        toggle("Aimrizogs")
+        toggle("Aimbot Target")
+        toggle("ESP Enabled")
+        toggle("Show Names")
+        toggle("Show Distance")
+        toggle("Delete Preview")
+
+    elseif tab=="AIM" then
+        section("AIM OPTIONS")
+        toggle("Aimbot PC")
+        toggle("Aimrizogs")
+        toggle("Aimbot Target")
+        dropdown("Target Limb",{"Head","UpperTorso","HumanoidRootPart"})
+        toggle("Hold Mode")
+
+        section("AIMBOT CONFIG")
+        slider("FOV",10,500,120)
+        slider("FOV Transparency",0,100,50)
+        slider("Max Distance",100,10000,1000)
+        slider("Smoothing",1,100,25)
+        slider("Prediction",0,100,10)
+        toggle("Use Prediction")
+        toggle("Team Check")
+
+        section("COLOR SETTINGS")
+        colorPicker("FOV Circle Color",function(color)
+            if color then Theme.FOV=color end
+            return Theme.FOV
+        end)
+
+        colorPicker("FOV Lock Color",function(color)
+            if color then Theme.Magenta=color end
+            return Theme.Magenta
+        end)
+
+    elseif tab=="VISUAL" then
+        section("VISUAL OPTIONS")
+        toggle("ESP Enabled")
+        toggle("Show Names")
+        toggle("Show Distance")
+        dropdown("ESP Mode",{"Name","Distance","Name + Distance"})
+        slider("ESP Distance",100,10000,1000)
+
+        colorPicker("ESP Color",function(color)
+            if color then Theme.ESP=color end
+            return Theme.ESP
+        end)
+
+    elseif tab=="DELETER" then
+        section("DELETER TEST OPTIONS")
+        toggle("Delete Preview")
+        dropdown("Preview Mode",{"Single","Multiple","All"})
+        slider("Preview Distance",10,500,100)
+
+    elseif tab=="TP" then
+        section("TELEPORT TEST OPTIONS")
+        dropdown("Destination",{"Spawn","Checkpoint 1","Checkpoint 2"})
+        toggle("Teleport Preview")
+        label(content,"Conecta esta sección a puntos de prueba de tu propio mapa.",UDim2.new(1,-10,0,35),Theme.Muted)
+    end
+end
+
+for i,tab in ipairs(tabs) do
+    local button=create("TextButton",{
+        Size=UDim2.new(1,-16,0,38),
+        Position=UDim2.fromOffset(8,42+(i-1)*45),
+        Text=tab,
+        TextSize=13,
+        Font=Enum.Font.GothamBold,
+        TextColor3=Theme.Magenta,
+        BackgroundColor3=Color3.fromRGB(255,255,255),
+        BorderSizePixel=0
+    },sidebar)
+    round(button,7)
+    tabButtons[tab]=button
+
+    button.MouseButton1Click:Connect(function()
+        for _,b in pairs(tabButtons) do
+            b.BackgroundColor3=Color3.fromRGB(255,255,255)
+        end
+        button.BackgroundColor3=Color3.fromRGB(255,220,239)
+        buildTab(tab)
+    end)
+end
+
+tabButtons.MAIN.BackgroundColor3=Color3.fromRGB(255,220,239)
+buildTab("MAIN")
+
+-- Arrastrar ventana
+
+local dragging=false
+local dragStart
+local startPos
+
+top.InputBegan:Connect(function(input)
+    if input.UserInputType==Enum.UserInputType.MouseButton1 then
+        dragging=true
+        dragStart=input.Position
+        startPos=main.Position
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then
+        local delta=input.Position-dragStart
+        main.Position=UDim2.new(
+            startPos.X.Scale,startPos.X.Offset+delta.X,
+            startPos.Y.Scale,startPos.Y.Offset+delta.Y
+        )
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType==Enum.UserInputType.MouseButton1 then
+        dragging=false
+    end
+end)
+
+-- Botón flotante
+
+local floating=create("TextButton",{
+    Size=UDim2.fromOffset(54,54),
+    Position=UDim2.new(0,25,0.5,-27),
+    Text="V",
+    TextSize=24,
+    Font=Enum.Font.GothamBlack,
+    TextColor3=Color3.new(1,1,1),
+    BackgroundColor3=Theme.Magenta,
+    Visible=false,
+    BorderSizePixel=0
+},gui)
+round(floating,30)
+outline(floating,Theme.Pink,2)
+
+local function hide()
+    main.Visible=false
+    floating.Visible=true
+end
+
+local function show()
+    main.Visible=true
+    floating.Visible=false
+end
+
+minimize.MouseButton1Click:Connect(hide)
+close.MouseButton1Click:Connect(hide)
+floating.MouseButton1Click:Connect(show)
+
+-- Tecla K para ocultar y mostrar
+
+UIS.InputBegan:Connect(function(input,processed)
+    if processed then return end
+    if input.KeyCode==Enum.KeyCode.K then
+        if main.Visible then
+            hide()
+        else
+            show()
+        end
+    end
+end)
+
+print("VYRE HUB v2.0 loaded")
